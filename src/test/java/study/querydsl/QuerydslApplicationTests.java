@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.entity.Hello;
+import study.querydsl.entity.Member;
 import study.querydsl.entity.QHello;
 
 import javax.persistence.EntityManager;
@@ -16,6 +17,7 @@ import javax.persistence.EntityManager;
 class QuerydslApplicationTests {
 	@Autowired
 	EntityManager em;
+
 	@Test
 	void contextLoads() {
 		Hello hello = new Hello();
