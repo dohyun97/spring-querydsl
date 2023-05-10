@@ -1,8 +1,12 @@
 package study.querydsl.repository;
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.util.StringUtils;
 import study.querydsl.dto.MemberSearchCondition;
 import study.querydsl.dto.MemberTeamDto;
@@ -39,6 +43,71 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
                 //.where(usernameEq(condition.getUsername()),teanNameEq(condition.getTeamName()),ageBetween(condition.getAgeLoe(),condition.getAgeGoe()))
                 .fetch();
     }
+
+    @Override
+    public Page<MemberTeamDto> searchPageSimple(MemberSearchCondition condition, Pageable pageable) {
+        QueryResults<MemberTeamDto> results = queryFactory
+                .select(new QMemberTeamDto(
+                        member.id,
+                        member.username,
+                        member.age,
+                        team.id,
+                        team.name
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(usernameEq(condition.getUsername()), teanNameEq(condition.getTeamName()), ageGoe(condition.getAgeGoe()), ageLoe(condition.getAgeLoe()))
+                //.where(usernameEq(condition.getUsername()),teanNameEq(condition.getTeamName()),ageBetween(condition.getAgeLoe(),condition.getAgeGoe()))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetchResults();
+        List<MemberTeamDto> content = results.getResults();
+        long total = results.getTotal();
+        return new PageImpl<>(content,pageable,total);
+    }
+    /**
+     * 복잡한 페이징
+     * 데이터 조회 쿼리와, 전체 카운트 쿼리를 분리
+     */
+    @Override
+    public Page<MemberTeamDto> searchPageComplex(MemberSearchCondition condition, Pageable pageable) {
+        List<MemberTeamDto> content = queryFactory
+                .select(new QMemberTeamDto(
+                        member.id,
+                        member.username,
+                        member.age,
+                        team.id,
+                        team.name
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(usernameEq(condition.getUsername()), teanNameEq(condition.getTeamName()), ageGoe(condition.getAgeGoe()), ageLoe(condition.getAgeLoe()))
+                //.where(usernameEq(condition.getUsername()),teanNameEq(condition.getTeamName()),ageBetween(condition.getAgeLoe(),condition.getAgeGoe()))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+        Long total = queryFactory
+                .select(new QMemberTeamDto(
+                        member.id,
+                        member.username,
+                        member.age,
+                        team.id,
+                        team.name
+                ))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(usernameEq(condition.getUsername()), teanNameEq(condition.getTeamName()), ageGoe(condition.getAgeGoe()), ageLoe(condition.getAgeLoe()))
+                //.where(usernameEq(condition.getUsername()),teanNameEq(condition.getTeamName()),ageBetween(condition.getAgeLoe(),condition.getAgeGoe()))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+               .fetchCount();
+
+
+
+
+       return new PageImpl<>(content,pageable,total);
+    }
+
     private BooleanExpression ageBetween(int ageLoe, int ageGoe){
         return ageGoe(ageGoe).and(ageLoe(ageLoe));
     }
@@ -57,5 +126,7 @@ public class MemberRepositoryImpl implements MemberRepositoryCustom{
     private BooleanExpression usernameEq(String username) {
         return StringUtils.hasText(username) ? member.username.eq(username) : null;
     }
+
+
 
 }
